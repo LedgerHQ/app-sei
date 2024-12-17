@@ -26,7 +26,7 @@
 
 static parser_context_t ctx_parsed_tx;
 
-const char *tx_parse_eth() {
+const char *tx_parse_eth(uint8_t *error_code) {
     uint8_t err = parser_parse_eth(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length());
 
     CHECK_APP_CANARY()
@@ -38,6 +38,7 @@ const char *tx_parse_eth() {
     err = parser_validate_eth(&ctx_parsed_tx);
     CHECK_APP_CANARY()
 
+    *error_code = err;
     if (err != parser_ok) {
         return parser_getErrorDescription(err);
     }
@@ -45,8 +46,8 @@ const char *tx_parse_eth() {
     return NULL;
 }
 
-zxerr_t tx_compute_eth_v(unsigned int info, uint8_t *v) {
-    parser_error_t err = parser_compute_eth_v(&ctx_parsed_tx, info, v);
+zxerr_t tx_compute_eth_v(unsigned int info, uint8_t *v, bool is_personal_message) {
+    parser_error_t err = parser_compute_eth_v(&ctx_parsed_tx, info, v, is_personal_message);
 
     if (err != parser_ok) return zxerr_unknown;
 

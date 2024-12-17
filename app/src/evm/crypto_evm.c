@@ -141,13 +141,18 @@ catch_cx_error:
 
 // Sign an ethereum related transaction
 zxerr_t crypto_sign_eth(uint8_t *buffer, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen,
-                        uint16_t *sigSize) {
+                        uint16_t *sigSize, bool is_personal_message) {
     if (buffer == NULL || message == NULL || sigSize == NULL || signatureMaxlen < sizeof(signature_t)) {
         return zxerr_invalid_crypto_settings;
     }
 
     uint8_t message_digest[KECCAK_256_SIZE] = {0};
-    CHECK_ZXERR(keccak_digest(message, messageLen, message_digest, KECCAK_256_SIZE))
+
+    if (is_personal_message) {
+        MEMCPY(message_digest, message, messageLen);
+    } else {
+        CHECK_ZXERR(keccak_digest(message, messageLen, message_digest, KECCAK_256_SIZE))
+    }
 
     unsigned int info = 0;
     zxerr_t error = _sign(buffer, signatureMaxlen, message_digest, KECCAK_256_SIZE, sigSize, &info);
@@ -157,7 +162,7 @@ zxerr_t crypto_sign_eth(uint8_t *buffer, uint16_t signatureMaxlen, const uint8_t
 
     // we need to fix V
     uint8_t v = 0;
-    CHECK_ZXERR(tx_compute_eth_v(info, &v));
+    CHECK_ZXERR(tx_compute_eth_v(info, &v, is_personal_message));
 
     // need to reorder signature as hw-eth-app expects v at the beginning.
     // so rsv -> vrs

@@ -78,7 +78,7 @@ typedef struct {
 
 extern parser_tx_t parser_tx_obj;
 
-parser_error_t _read(parser_context_t *c, parser_tx_t *v);
+parser_error_t _read(parser_context_t *c);
 
 parser_error_t parser_traverse_find(uint16_t root_token_index, uint16_t *ret_value_token_index);
 

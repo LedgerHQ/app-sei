@@ -29,7 +29,6 @@ using namespace std;
 
 TEST(SCALE, ReadBytes) {
     parser_context_t ctx;
-    parser_tx_t tx_obj;
     parser_error_t err;
     uint8_t buffer[100];
     auto bufferLen = parseHexString(
@@ -40,7 +39,7 @@ TEST(SCALE, ReadBytes) {
             "12345678901234567890"
     );
 
-    parser_parse(&ctx, buffer, bufferLen, &tx_obj);
+    parser_parse(&ctx, buffer, bufferLen);
 
     // uint8_t bytesArray[100] = {0};
     // err = _readBytes(&ctx, bytesArray, 1);
