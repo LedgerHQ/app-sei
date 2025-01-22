@@ -132,13 +132,10 @@ void check_testcase(const testcase_t &tc, bool expert_mode, bool is_eth) {
     uint8_t buffer[5000];
     uint16_t bufferLen = parseHexString(buffer, sizeof(buffer), tc.blob.c_str());
 
-    parser_tx_t tx_obj;
-    memset(&tx_obj, 0, sizeof(tx_obj));
-
     if (is_eth) {
         err = parser_parse_eth(&ctx, buffer, bufferLen);
     } else {
-        err = parser_parse(&ctx, buffer, bufferLen, &tx_obj);
+        err = parser_parse(&ctx, buffer, bufferLen);
     }
     ASSERT_EQ(err, parser_ok) << parser_getErrorDescription(err);
 

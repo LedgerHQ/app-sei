@@ -57,7 +57,7 @@ const char *parser_getErrorDescription(parser_error_t err) {
     }
 }
 
-parser_error_t _read(parser_context_t *ctx, __Z_UNUSED parser_tx_t *v) {
+parser_error_t _read(parser_context_t *ctx) {
     extraDepthLevel = false;
     parser_error_t err = json_parse(&parser_tx_obj.json, (const char *)ctx->buffer, ctx->bufferLen);
     if (err != parser_ok) {

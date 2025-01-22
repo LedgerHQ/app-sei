@@ -72,6 +72,7 @@ typedef enum {
     parser_unsupported_tx,
     parser_invalid_rs_values,
     parser_invalid_chain_id,
+    parser_blindsign_mode_required,
 } parser_error_t;
 
 #ifdef __cplusplus

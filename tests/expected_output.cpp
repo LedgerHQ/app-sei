@@ -93,6 +93,9 @@ std::vector<std::string> EVMGenerateExpectedUIOutput(const Json::Value &json, bo
     answer.insert(answer.end(), contractAddress.begin(), contractAddress.end());
 
     idx++;
+    addTo(answer, "{} | Coin asset : {}", idx, "Sei Mainnet");
+
+    idx++;
     addTo(answer, "{} | Amount : {}", idx, amount);
 
     idx++;
