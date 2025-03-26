@@ -232,4 +232,4 @@ TEST(TxValidationTest, NotSortedDictionary_LastElement) {
     err = parser_json_validate(&json);
     EXPECT_EQ(err, parser_json_is_not_sorted) << "Validation failed, error: " << parser_getErrorDescription(err);
 }
-}
+}  // namespace

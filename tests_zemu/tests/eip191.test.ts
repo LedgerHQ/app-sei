@@ -32,7 +32,7 @@ const SIGN_TEST_DATA = [
   },
   {
     name: 'personal_sign_non_printable_msg',
-    message: Buffer.from('\x00\x00\x00\x00\x00zx', 'utf8'),
+    message: Buffer.from('\x00Hello World!', 'utf8'),
     blind: true,
   },
 ]

@@ -304,6 +304,6 @@ void handleSignEip191(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t 
     CHECK_APP_CANARY()
 
     view_review_init(eip191_msg_getItem, eip191_msg_getNumItems, app_sign_eip191);
-    view_review_show(REVIEW_TXN);
+    view_review_show(REVIEW_MSG);
     *flags |= IO_ASYNCH_REPLY;
 }

@@ -65,15 +65,17 @@ zxerr_t eip191_msg_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, 
         }
         case 1: {
             snprintf(outKey, outKeyLen, "Msg hex");
-            uint16_t npc = 0;  // Non Printable Chars Counter
+            uint8_t is_printable = 1;
 
+            // Check if all characters are printable
             for (uint16_t i = 0; i < messageLength; i++) {
-                npc += IS_PRINTABLE(message[i]) ? 0 /* Printable Char */ : 1 /* Non Printable Char */;
+                if (!IS_PRINTABLE(message[i])) {
+                    is_printable = 0;
+                    break;
+                }
             }
 
-            // msg in hex in case >= than 40% is non printable
-            // or first char is not printable.
-            if (messageLength > 0 && (npc * 100) / messageLength >= 40) {
+            if (messageLength > 0 && is_printable == 0) {
                 pageStringHex(outVal, outValLen, (const char *)message, messageLength, pageIdx, pageCount);
                 return zxerr_ok;
             }
@@ -93,16 +95,14 @@ zxerr_t eip191_msg_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, 
 bool eip191_msg_parse() {
     const uint8_t *message = tx_get_buffer() + sizeof(uint32_t);
     const uint16_t messageLength = tx_get_buffer_length() - sizeof(uint32_t);
-    uint16_t npc = 0;  // Non Printable Chars Counter
+    // Check if all characters are printable
     for (uint16_t i = 0; i < messageLength; i++) {
-        npc += IS_PRINTABLE(message[i]) ? 0 /* Printable Char */ : 1 /* Non Printable Char */;
-    }
-    // msg in hex in case >= than 40% is non printable
-    // or first char is not printable.
-    if (messageLength > 0 && (npc * 100) / messageLength >= 40 && !app_mode_blindsign()) {
-        return false;
-    } else if (messageLength > 0 && (npc * 100) / messageLength < 40) {
-        app_mode_skip_blindsign_ui();
+        if (!IS_PRINTABLE(message[i])) {
+            if (!app_mode_blindsign()) {
+                return false;
+            }
+            break;
+        }
     }
 
     return true;
