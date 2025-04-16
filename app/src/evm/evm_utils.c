@@ -169,8 +169,16 @@ parser_error_t printBigIntFixedPoint(const uint8_t *number, uint16_t number_len,
         return parser_unexpected_value;
     }
 
-    fpstr_to_str(overlapped.output, sizeof(overlapped.output), bignum, decimals);
+    if (fpstr_to_str(overlapped.output, sizeof(overlapped.output), bignum, decimals)) {
+        return parser_unexpected_value;
+    }
+
     number_inplace_trimming(overlapped.output, 1);
+
+    if (z_str3join(overlapped.output, sizeof(overlapped.output), NULL, SEI_TOKEN_SYMBOL) != zxerr_ok) {
+        return parser_unexpected_buffer_end;
+    }
+
     pageString(outVal, outValLen, overlapped.output, pageIdx, pageCount);
     return parser_ok;
 }
@@ -187,6 +195,44 @@ parser_error_t printEVMAddress(const rlp_t *address, char *outVal, uint16_t outV
         return parser_unexpected_error;
     }
     pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
+
+    return parser_ok;
+}
+
+parser_error_t printEVMMaxFees(const eth_tx_t *ethObj, char *outVal, uint16_t outValLen, uint8_t pageIdx,
+                               uint8_t *pageCount) {
+    if (ethObj == NULL || outVal == NULL || pageCount == NULL) {
+        return parser_unexpected_error;
+    }
+
+    uint256_t gas_limit = {0};
+    uint256_t gas_price = {0};
+
+    // Gas limit and gas price
+    CHECK_ERROR(rlp_readUInt256(&ethObj->tx.gasLimit, &gas_limit));
+    CHECK_ERROR(rlp_readUInt256(&ethObj->tx.gasPrice, &gas_price));
+
+    // multiply gas limit and gas price
+    uint256_t max_fees = {0};
+    mul256(&gas_limit, &gas_price, &max_fees);
+
+    char bufferUI[100] = {0};
+    if (!tostring256(&max_fees, DECIMAL_BASE, bufferUI, sizeof(bufferUI))) {
+        return parser_unexpected_error;
+    }
+
+    // Add symbol, add decimals, page number
+    if (intstr_to_fpstr_inplace(bufferUI, sizeof(bufferUI), COIN_DECIMALS) == 0) {
+        return parser_unexpected_value;
+    }
+
+    number_inplace_trimming(bufferUI, 1);
+
+    if (z_str3join(bufferUI, sizeof(bufferUI), NULL, SEI_TOKEN_SYMBOL) != zxerr_ok) {
+        return parser_unexpected_buffer_end;
+    }
+
+    pageString(outVal, outValLen, bufferUI, pageIdx, pageCount);
 
     return parser_ok;
 }

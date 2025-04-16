@@ -72,13 +72,15 @@ std::vector<std::string> EVMGenerateExpectedUIOutput(const Json::Value &json, bo
     auto maxFee = std::string();
     auto maxPriorityFee = std::string();
     auto gasPrice = std::string();
+    auto gasLimit = std::string();
+    auto maxFees = std::string();
     if (description.find("eip1559") != std::string::npos) {
         maxFee = message["MaxFeePerGas"].asString();
         maxPriorityFee = message["MaxPriorityFeePerGas"].asString();
+        gasLimit = message["GasLimit"].asString();
     } else {
-        gasPrice = message["GasPrice"].asString();
+        maxFees = message["maxFee"].asString();
     }
-    auto gasLimit = message["GasLimit"].asString();
     auto value = message["Value"].asString();
     auto txhash = message["Eth-Hash"].asString();
     auto data = message["Data"].asString();
@@ -93,7 +95,7 @@ std::vector<std::string> EVMGenerateExpectedUIOutput(const Json::Value &json, bo
     answer.insert(answer.end(), contractAddress.begin(), contractAddress.end());
 
     idx++;
-    addTo(answer, "{} | Coin asset : {}", idx, "Sei Mainnet");
+    addTo(answer, "{} | Network : {}", idx, "Sei Mainnet");
 
     idx++;
     addTo(answer, "{} | Amount : {}", idx, amount);
@@ -106,13 +108,13 @@ std::vector<std::string> EVMGenerateExpectedUIOutput(const Json::Value &json, bo
         addTo(answer, "{} | Max Priority Fee : {}", idx, maxPriorityFee);
         idx++;
         addTo(answer, "{} | Max Fee : {}", idx, maxFee);
+        idx++;
+        addTo(answer, "{} | Gas limit : {}", idx, gasLimit);
     }
-    idx++;
-    addTo(answer, "{} | Gas limit : {}", idx, gasLimit);
 
     if (description.find("eip1559") == std::string::npos) {
         idx++;
-        addTo(answer, "{} | Gas price : {}", idx, gasPrice);
+        addTo(answer, "{} | Max Fees : {}", idx, maxFees);
     }
 
     idx++;
@@ -120,10 +122,6 @@ std::vector<std::string> EVMGenerateExpectedUIOutput(const Json::Value &json, bo
 
     idx++;
     addTo(answer, "{} | Data : {}", idx, data);
-
-    idx++;
-    auto hash = FormatEthAddress("EVM Hash", idx, txhash);
-    answer.insert(answer.end(), hash.begin(), hash.end());
 
     return answer;
 }

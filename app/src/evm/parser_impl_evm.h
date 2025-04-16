@@ -60,7 +60,7 @@ typedef struct {
     rlp_t chainId;
     eth_base_t tx;
     bool is_erc20_transfer;
-
+    bool is_blindsign;
 } eth_tx_t;
 
 extern eth_tx_t eth_tx_obj;
