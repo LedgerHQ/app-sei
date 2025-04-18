@@ -60,7 +60,7 @@ typedef struct {
     rlp_t chainId;
     eth_base_t tx;
     bool is_erc20_transfer;
-
+    bool is_blindsign;
 } eth_tx_t;
 
 extern eth_tx_t eth_tx_obj;
@@ -77,7 +77,7 @@ parser_error_t _getNumItemsEth(uint8_t *numItems);
 
 parser_error_t _validateTxEth();
 
-parser_error_t _computeV(parser_context_t *ctx, eth_tx_t *tx_obj, unsigned int info, uint8_t *v);
+parser_error_t _computeV(parser_context_t *ctx, eth_tx_t *tx_obj, unsigned int info, uint8_t *v, bool is_personal_message);
 
 #ifdef __cplusplus
 }

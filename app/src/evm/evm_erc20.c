@@ -22,10 +22,9 @@
 // Prefix is calculated as: keccak256("transfer(address,uint256)") = 0xa9059cbb
 const uint8_t ERC20_TRANSFER_PREFIX[] = {0xa9, 0x05, 0x9c, 0xbb};
 
-#define DECIMAL_BASE 10
 const erc20_tokens_t supportedTokens[] = {{{0x9c, 0x1c, 0xb7, 0x40, 0xf3, 0xb6, 0x31, 0xed, 0x53, 0x60,
                                             0x00, 0x58, 0xae, 0x5b, 0x2f, 0x83, 0xe1, 0x5d, 0x9f, 0xbf},
-                                           "SEI ",
+                                           " SEI",
                                            18}
 
 };
@@ -47,7 +46,7 @@ parser_error_t getERC20Token(const eth_tx_t *ethObj, char tokenSymbol[MAX_SYMBOL
         }
     }
 
-    snprintf(tokenSymbol, 10, "?? ");
+    snprintf(tokenSymbol, 10, " ??");
     *decimals = 0;
     return parser_ok;
 }
@@ -78,11 +77,12 @@ parser_error_t printERC20Value(const eth_tx_t *ethObj, char *outVal, uint16_t ou
         return parser_unexpected_value;
     }
 
-    if (z_str3join(bufferUI, sizeof(bufferUI), tokenSymbol, NULL) != zxerr_ok) {
+    number_inplace_trimming(bufferUI, 1);
+
+    if (z_str3join(bufferUI, sizeof(bufferUI), NULL, tokenSymbol) != zxerr_ok) {
         return parser_unexpected_buffer_end;
     }
 
-    number_inplace_trimming(bufferUI, 1);
     pageString(outVal, outValLen, bufferUI, pageIdx, pageCount);
 
     return parser_ok;

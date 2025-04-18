@@ -35,6 +35,9 @@ eth_tx_t eth_tx_obj;
 #define SEI_MAINNET_CHAINID 1329
 #define SEI_DEVNET_CHAINID 713715
 
+#define ETHEREUM_RECOVERY_OFFSET 27
+#define EIP155_V_BASE 35
+
 const uint64_t supported_networks_evm[2] = {
     SEI_MAINNET_CHAINID,
     SEI_DEVNET_CHAINID,
@@ -59,6 +62,7 @@ static parser_error_t readChainID(parser_context_t *ctx, rlp_t *chainId) {
     // Check allowed values for chain id
     for (uint8_t i = 0; i < SUPPORTED_NETWORKS_EVM_LEN; i++) {
         if (tmpChainId == supported_networks_evm[i]) {
+            chainId->chain_id_decoded = tmpChainId;
             return parser_ok;
         }
     }
@@ -214,8 +218,12 @@ parser_error_t _readEth(parser_context_t *ctx, eth_tx_t *tx_obj) {
 }
 
 parser_error_t _validateTxEth() {
-    if (!validateERC20(&eth_tx_obj) && !app_mode_expert()) {
-        return parser_unsupported_tx;
+    eth_tx_obj.is_blindsign = true;
+    if (eth_tx_obj.tx.data.rlpLen == 0 || validateERC20(&eth_tx_obj)) {
+        app_mode_skip_blindsign_ui();
+        eth_tx_obj.is_blindsign = false;
+    } else if (!app_mode_blindsign()) {
+        return parser_blindsign_mode_required;
     }
 
     return parser_ok;
@@ -243,8 +251,9 @@ static parser_error_t printEthHash(const parser_context_t *ctx, char *outKey, ui
     return parser_ok;
 }
 
-static parser_error_t printERC20Transfer(const parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen,
-                                         char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+static parser_error_t printERC20Transfer(__Z_UNUSED const parser_context_t *ctx, uint8_t displayIdx, char *outKey,
+                                         uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx,
+                                         uint8_t *pageCount) {
     if (outKey == NULL || outVal == NULL || pageCount == NULL) {
         return parser_unexpected_error;
     }
@@ -252,12 +261,12 @@ static parser_error_t printERC20Transfer(const parser_context_t *ctx, uint8_t di
     MEMZERO(outVal, outValLen);
     *pageCount = 1;
 
-    if (eth_tx_obj.tx_type == eip1559 && displayIdx >= 7) {
+    if (eth_tx_obj.tx_type == eip1559 && displayIdx >= 8) {
         displayIdx++;
     }
 
-    if ((eth_tx_obj.tx_type == legacy || eth_tx_obj.tx_type == eip2930) && displayIdx >= 4) {
-        displayIdx += 2;
+    if ((eth_tx_obj.tx_type == legacy || eth_tx_obj.tx_type == eip2930) && displayIdx >= 5) {
+        displayIdx += 3;
     }
 
     char data_array[40] = {0};
@@ -275,41 +284,55 @@ static parser_error_t printERC20Transfer(const parser_context_t *ctx, uint8_t di
             break;
 
         case 2:
+            snprintf(outKey, outKeyLen, "Network");
+            switch (eth_tx_obj.chainId.chain_id_decoded) {
+                case SEI_MAINNET_CHAINID:
+                    snprintf(outVal, outValLen, "Sei Mainnet");
+                    break;
+                case SEI_DEVNET_CHAINID:
+                    snprintf(outVal, outValLen, "Sei Devnet");
+                    break;
+                default:
+                    return parser_invalid_chain_id;
+            }
+            break;
+
+        case 3:
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_ERROR(printERC20Value(&eth_tx_obj, outVal, outValLen, pageIdx, pageCount));
             break;
 
-        case 3:
+        case 4:
             snprintf(outKey, outKeyLen, "Nonce");
             CHECK_ERROR(printRLPNumber(&eth_tx_obj.tx.nonce, outVal, outValLen, pageIdx, pageCount));
             break;
 
-        case 4:
+        case 5:
             snprintf(outKey, outKeyLen, "Max Priority Fee");
             CHECK_ERROR(printRLPNumber(&eth_tx_obj.tx.max_priority_fee_per_gas, outVal, outValLen, pageIdx, pageCount));
             break;
 
-        case 5:
+        case 6:
             snprintf(outKey, outKeyLen, "Max Fee");
             CHECK_ERROR(printRLPNumber(&eth_tx_obj.tx.max_fee_per_gas, outVal, outValLen, pageIdx, pageCount));
             break;
 
-        case 6:
+        case 7:
             snprintf(outKey, outKeyLen, "Gas limit");
             CHECK_ERROR(printRLPNumber(&eth_tx_obj.tx.gasLimit, outVal, outValLen, pageIdx, pageCount));
             break;
 
-        case 7:
-            snprintf(outKey, outKeyLen, "Gas price");
-            CHECK_ERROR(printRLPNumber(&eth_tx_obj.tx.gasPrice, outVal, outValLen, pageIdx, pageCount));
+        case 8:
+            snprintf(outKey, outKeyLen, "Max Fees");
+            CHECK_ERROR(printEVMMaxFees(&eth_tx_obj, outVal, outValLen, pageIdx, pageCount));
             break;
 
-        case 8:
+        case 9:
             snprintf(outKey, outKeyLen, "Value");
             CHECK_ERROR(printRLPNumber(&eth_tx_obj.tx.value, outVal, outValLen, pageIdx, pageCount));
             break;
 
-        case 9:
+        case 10:
             snprintf(outKey, outKeyLen, "Data");
             array_to_hexstr(
                 data_array, sizeof(data_array), eth_tx_obj.tx.data.ptr,
@@ -320,10 +343,6 @@ static parser_error_t printERC20Transfer(const parser_context_t *ctx, uint8_t di
             }
 
             pageString(outVal, outValLen, data_array, pageIdx, pageCount);
-            break;
-
-        case 10:
-            CHECK_ERROR(printEthHash(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
             break;
 
         default:
@@ -353,7 +372,7 @@ static parser_error_t printGeneric(const parser_context_t *ctx, uint8_t displayI
     }
 
     if ((eth_tx_obj.tx_type == legacy || eth_tx_obj.tx_type == eip2930) && displayIdx >= 3) {
-        displayIdx += 2;
+        displayIdx += 3;
     }
 
     switch (displayIdx) {
@@ -362,8 +381,9 @@ static parser_error_t printGeneric(const parser_context_t *ctx, uint8_t displayI
             rlp_t contractAddress = {.kind = RLP_KIND_STRING, .ptr = eth_tx_obj.tx.to.ptr, .rlpLen = ETH_ADDRESS_LEN};
             CHECK_ERROR(printEVMAddress(&contractAddress, outVal, outValLen, pageIdx, pageCount));
             break;
+
         case 1:
-            snprintf(outKey, outKeyLen, "Value");
+            snprintf(outKey, outKeyLen, "Amount");
             printBigIntFixedPoint(eth_tx_obj.tx.value.ptr, eth_tx_obj.tx.value.rlpLen, outVal, outValLen, pageIdx, pageCount,
                                   COIN_DECIMALS);
             break;
@@ -397,8 +417,8 @@ static parser_error_t printGeneric(const parser_context_t *ctx, uint8_t displayI
             break;
 
         case 6:
-            snprintf(outKey, outKeyLen, "Gas price");
-            CHECK_ERROR(printRLPNumber(&eth_tx_obj.tx.gasPrice, outVal, outValLen, pageIdx, pageCount));
+            snprintf(outKey, outKeyLen, "Max Fees");
+            CHECK_ERROR(printEVMMaxFees(&eth_tx_obj, outVal, outValLen, pageIdx, pageCount));
             break;
 
         case 7:
@@ -422,11 +442,9 @@ parser_error_t _getItemEth(const parser_context_t *ctx, uint8_t displayIdx, char
     // At the moment, clear signing is available only for ERC20 transfer
     if (eth_tx_obj.is_erc20_transfer) {
         return printERC20Transfer(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
-    } else if (app_mode_expert()) {
-        return printGeneric(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
     }
 
-    return parser_unsupported_tx;
+    return printGeneric(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
 }
 
 // returns the number of items to display on the screen.
@@ -439,49 +457,51 @@ parser_error_t _getNumItemsEth(uint8_t *numItems) {
     // Verify that tx is ERC20
     if (validateERC20(&eth_tx_obj)) {
         if (eth_tx_obj.tx_type == legacy || eth_tx_obj.tx_type == eip2930) {
-            *numItems = 9;
+            *numItems = 8;
         } else {
             *numItems = 10;
         }
         return parser_ok;
     }
 
-    *numItems = 5 + ((eth_tx_obj.tx.data.rlpLen != 0) ? 1 : 0) + ((eth_tx_obj.tx.to.rlpLen != 0) ? 1 : 0);
+    // Common items
+    if (eth_tx_obj.tx_type == legacy || eth_tx_obj.tx_type == eip2930) {
+        *numItems = 4;
+    } else {
+        *numItems = 6;
+    }
+
+    // Check if the transaction is blindsigned if so show EVM hash
+    *numItems -= (eth_tx_obj.is_blindsign ? 0 : 1);
+
+    // Check if the transaction has data or to address to show
+    *numItems += ((eth_tx_obj.tx.data.rlpLen != 0) ? 1 : 0) + ((eth_tx_obj.tx.to.rlpLen != 0) ? 1 : 0);
+
     return parser_ok;
 }
 
-parser_error_t _computeV(parser_context_t *ctx, eth_tx_t *tx_obj, unsigned int info, uint8_t *v) {
+// https://github.com/LedgerHQ/ledger-live/commit/b93a421866519b80fdd8a029caea97323eceae93
+parser_error_t _computeV(parser_context_t *ctx, eth_tx_t *tx_obj, unsigned int info, uint8_t *v, bool is_personal_message) {
     if (ctx == NULL || tx_obj == NULL || v == NULL) {
         return parser_unexpected_error;
     }
 
+    uint8_t parity = info & CX_ECCINFO_PARITY_ODD;
+
+    if (is_personal_message) {
+        *v = ETHEREUM_RECOVERY_OFFSET + parity;
+        return parser_ok;
+    }
+
     uint8_t type = eth_tx_obj.tx_type;
-    uint8_t parity = (info & CX_ECCINFO_PARITY_ODD) == 1;
 
     if (type == eip2930 || type == eip1559) {
         *v = parity;
         return parser_ok;
     }
 
-    // we need chainID info
-    if (tx_obj->chainId.rlpLen == 0) {
-        // according to app-ethereum this is the legacy non eip155 conformant
-        // so V should be made before EIP155 which had
-        // 27 + {0, 1}
-        // 27, decided by the parity of Y
-        // see https://bitcoin.stackexchange.com/a/112489
-        //     https://ethereum.stackexchange.com/a/113505
-        //     https://eips.ethereum.org/EIPS/eip-155
-        *v = 27 + parity;
-
-    } else {
-        uint64_t id = 0;
-        CHECK_ERROR(be_bytes_to_u64(tx_obj->chainId.ptr, tx_obj->chainId.rlpLen, &id));
-
-        uint32_t cv = 35 + parity;
-        cv = saturating_add_u32(cv, (uint32_t)id * 2);
-        *v = (uint8_t)cv;
-    }
+    uint32_t chainId = (uint32_t)eth_tx_obj.chainId.chain_id_decoded;
+    *v = (uint8_t)saturating_add_u32(EIP155_V_BASE + parity, chainId * 2);
 
     return parser_ok;
 }
