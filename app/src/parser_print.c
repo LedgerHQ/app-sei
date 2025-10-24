@@ -73,7 +73,7 @@ __Z_INLINE parser_error_t calculate_is_default_chainid() {
     // get chain_id
     char outKey[2];
     char outVal[COIN_MAX_CHAINID_LEN];
-    uint8_t pageCount;
+    uint8_t pageCount = 0;
     INIT_QUERY_CONTEXT(outKey, sizeof(outKey), outVal, sizeof(outVal), 0, get_root_max_level(root_item_chain_id))
     parser_tx_obj.query.item_index = 0;
     parser_tx_obj.query._item_index_current = 0;
@@ -161,13 +161,13 @@ parser_error_t parser_indexRootFields() {
             parser_tx_obj.query.item_index = current_item_idx;
             strncpy_s(parser_tx_obj.query.out_key, required_root_item_key, parser_tx_obj.query.out_key_len);
 
-            uint16_t ret_value_token_index;
+            uint16_t ret_value_token_index = 0;
             err = parser_traverse_find(display_cache.root_item_start_token_idx[root_item_idx], &ret_value_token_index);
             if (err != parser_ok) {
                 continue;
             }
 
-            uint8_t pageCount;
+            uint8_t pageCount = 0;
             CHECK_ERROR_CLEAN_QUERY(parser_getToken(ret_value_token_index, parser_tx_obj.query.out_val,
                                                     parser_tx_obj.query.out_val_len, 0, &pageCount))
 
@@ -347,7 +347,7 @@ __Z_INLINE parser_error_t retrieve_tree_indexes(uint8_t display_index, root_item
     // consume indexed subpages until we get the item index in the subpage
     *root_item = 0;
     *subitem_index = 0;
-    uint8_t num_items;
+    uint8_t num_items = 0;
 
     CHECK_ERROR(get_subitem_count(*root_item, &num_items));
     while (num_items == 0) {
@@ -405,7 +405,7 @@ parser_error_t parser_display_query(uint16_t displayIdx, char *outKey, uint16_t 
     }
     CHECK_ERROR(parser_indexRootFields())
 
-    uint8_t num_items;
+    uint8_t num_items = 0;
     CHECK_ERROR(parser_display_numItems(&num_items))
 
     if (displayIdx >= num_items) {
@@ -591,7 +591,7 @@ __Z_INLINE parser_error_t parser_formatAmountItem(uint16_t amountToken, char *ou
     }
     *pageCount = 0;
 
-    uint16_t numElements;
+    uint16_t numElements = 0;
     CHECK_ERROR(array_get_element_count(&parser_tx_obj.json, amountToken, &numElements))
 
     if (numElements == 0) {
@@ -608,11 +608,11 @@ __Z_INLINE parser_error_t parser_formatAmountItem(uint16_t amountToken, char *ou
         return parser_unexpected_field;
     }
 
-    if (!parser_areEqual(amountToken + 1u, "amount")) {
+    if (!parser_areEqual(amountToken + 1U, "amount")) {
         return parser_unexpected_field;
     }
 
-    if (!parser_areEqual(amountToken + 3u, "denom")) {
+    if (!parser_areEqual(amountToken + 3U, "denom")) {
         return parser_unexpected_field;
     }
 
@@ -686,16 +686,20 @@ parser_error_t parser_formatAmount(uint16_t amountToken, char *outVal, uint16_t 
     uint8_t showPageIdx = pageIdx;
     uint16_t showItemTokenIdx = 0;
 
-    uint16_t numberAmounts;
+    uint16_t numberAmounts = 0;
     CHECK_ERROR(array_get_element_count(&parser_tx_obj.json, amountToken, &numberAmounts))
 
     // Count total subpagesCount and calculate correct page and TokenIdx
     for (uint16_t i = 0; i < numberAmounts; i++) {
-        uint16_t itemTokenIdx;
-        uint8_t subpagesCount;
+        uint16_t itemTokenIdx = 0;
+        uint8_t subpagesCount = 0;
 
         CHECK_ERROR(array_get_nth_element(&parser_tx_obj.json, amountToken, i, &itemTokenIdx));
         CHECK_ERROR(parser_formatAmountItem(itemTokenIdx, outVal, outValLen, 0, &subpagesCount));
+        // Check for overflow before accumulating pages
+        if (totalPages > UINT8_MAX - subpagesCount) {
+            return parser_value_out_of_range;
+        }
         totalPages += subpagesCount;
 
         if (!showItemSet) {
@@ -703,6 +707,9 @@ parser_error_t parser_formatAmount(uint16_t amountToken, char *outVal, uint16_t 
                 showItemSet = 1;
                 showItemTokenIdx = itemTokenIdx;
             } else {
+                if (showPageIdx < subpagesCount) {
+                    return parser_unexpected_value;
+                }
                 showPageIdx -= subpagesCount;
             }
         }
@@ -718,6 +725,6 @@ parser_error_t parser_formatAmount(uint16_t amountToken, char *outVal, uint16_t 
         return parser_ok;
     }
 
-    uint8_t dummy;
+    uint8_t dummy = 0;
     return parser_formatAmountItem(showItemTokenIdx, outVal, outValLen, showPageIdx, &dummy);
 }
