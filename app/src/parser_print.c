@@ -696,6 +696,10 @@ parser_error_t parser_formatAmount(uint16_t amountToken, char *outVal, uint16_t 
 
         CHECK_ERROR(array_get_nth_element(&parser_tx_obj.json, amountToken, i, &itemTokenIdx));
         CHECK_ERROR(parser_formatAmountItem(itemTokenIdx, outVal, outValLen, 0, &subpagesCount));
+        // Check for overflow before accumulating pages
+        if (totalPages > UINT8_MAX - subpagesCount) {
+            return parser_value_out_of_range;
+        }
         totalPages += subpagesCount;
 
         if (!showItemSet) {
@@ -703,6 +707,9 @@ parser_error_t parser_formatAmount(uint16_t amountToken, char *outVal, uint16_t 
                 showItemSet = 1;
                 showItemTokenIdx = itemTokenIdx;
             } else {
+                if (showPageIdx < subpagesCount) {
+                    return parser_unexpected_value;
+                }
                 showPageIdx -= subpagesCount;
             }
         }
