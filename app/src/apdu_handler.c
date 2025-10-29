@@ -57,7 +57,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
         THROW(APDU_CODE_WRONG_LENGTH);
     }
 
-    uint32_t added;
+    uint32_t added = 0;
     switch (payloadType) {
         case P1_INIT:
             tx_initialize();
@@ -88,6 +88,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
     }
 
     THROW(APDU_CODE_INVALIDP1P2);
+    return false;
 }
 
 __Z_INLINE void handle_getversion(__Z_UNUSED volatile uint32_t *flags, volatile uint32_t *tx) {
