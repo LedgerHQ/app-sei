@@ -23,15 +23,12 @@
 #include "parser.h"
 #include "zxmacros.h"
 
-#if defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+#if defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX) || defined(TARGET_APEX_P)
 #define RAM_BUFFER_SIZE 8192
 #define FLASH_BUFFER_SIZE 16384
 #elif defined(TARGET_NANOX)
 #define RAM_BUFFER_SIZE 7162
 #define FLASH_BUFFER_SIZE 16384
-#elif defined(TARGET_NANOS)
-#define RAM_BUFFER_SIZE 256
-#define FLASH_BUFFER_SIZE 8192
 #endif
 
 // Ram
@@ -42,7 +39,7 @@ typedef struct {
     uint8_t buffer[FLASH_BUFFER_SIZE];
 } storage_t;
 
-#if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+#if defined(LEDGER_SPECIFIC)
 storage_t NV_CONST N_appdata_impl __attribute__((aligned(64)));
 #define N_appdata (*(NV_VOLATILE storage_t *)PIC(&N_appdata_impl))
 #endif
@@ -104,10 +101,13 @@ zxerr_t tx_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char *ou
         parser_getItem(&ctx_parsed_tx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
 
     // Convert error codes
-    if (err == parser_no_data || err == parser_display_idx_out_of_range || err == parser_display_page_out_of_range)
+    if (err == parser_no_data || err == parser_display_idx_out_of_range || err == parser_display_page_out_of_range) {
         return zxerr_no_data;
+    }
 
-    if (err != parser_ok) return zxerr_unknown;
+    if (err != parser_ok) {
+        return zxerr_unknown;
+    }
 
     return zxerr_ok;
 }
