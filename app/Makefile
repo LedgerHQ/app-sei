@@ -27,7 +27,7 @@ endif
 include $(BOLOS_SDK)/Makefile.defines
 
 # Application name
-APPNAME = "Sei (Cosmos)"
+APPNAME = "Sei - Cosmos"
 
 # Set the default value for PRODUCTION_BUILD to 0 if not already defined
 PRODUCTION_BUILD ?= 1
@@ -75,7 +75,7 @@ PATH_APP_LOAD_PARAMS = $(APPPATH)
 #   * It must at least contains one value.
 #   * Values can be the app ticker or anything else but should be unique.
 ifeq ($(COIN),)
-    COIN = SEI
+    COIN = SEI_COSMOS
 endif
 $(info COIN  = [$(COIN)])
 VARIANT_PARAM=COIN
