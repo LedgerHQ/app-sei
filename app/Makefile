@@ -75,7 +75,7 @@ PATH_APP_LOAD_PARAMS = $(APPPATH)
 #   * It must at least contains one value.
 #   * Values can be the app ticker or anything else but should be unique.
 ifeq ($(COIN),)
-    COIN = SEI
+    COIN = SEI_COSMOS
 endif
 $(info COIN  = [$(COIN)])
 VARIANT_PARAM=COIN
