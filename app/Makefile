@@ -27,7 +27,7 @@ endif
 include $(BOLOS_SDK)/Makefile.defines
 
 # Application name
-APPNAME = "Sei"
+APPNAME = "Sei (Cosmos)"
 
 # Set the default value for PRODUCTION_BUILD to 0 if not already defined
 PRODUCTION_BUILD ?= 1
